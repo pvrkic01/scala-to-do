@@ -42,7 +42,14 @@ libraryDependencies ++= Seq(
   "com.typesafe.slick" %% "slick" % "3.4.1",
   // MySQL driver and Slick extension
   "mysql" % "mysql-connector-java" % "8.0.33",
-  "com.typesafe.slick" %% "slick-hikaricp" % "3.4.1"
+  "com.typesafe.slick" %% "slick-hikaricp" % "3.4.1",
+
+  "com.softwaremill.sttp.tapir" %% "tapir-core" % "1.2.10",
+  "com.softwaremill.sttp.tapir" %% "tapir-akka-http-server" % "1.4.0",
+  "com.softwaremill.sttp.tapir" %% "tapir-sttp-client" % "1.4.0",
+  "com.softwaremill.sttp.tapir" %% "tapir-json-circe" % "1.2.10",
+  "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-bundle" % "1.2.10"
+
 )
 
 // Here, `libraryDependencies` is a set of dependencies, and by using `+=`,

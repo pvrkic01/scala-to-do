@@ -25,6 +25,6 @@ class TaskActor extends Actor with ActorLogging {
       sender() ! "Task removed successfully"
     case AddTask(task) =>
       tasks = tasks :+ task
-      sender() ! "Task added successfully"
+      sender() ! task
   }
 }

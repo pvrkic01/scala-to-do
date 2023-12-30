@@ -13,4 +13,4 @@ class Tasks(tag: Tag) extends Table[Task](tag, "tasks") {
   def * : ProvenShape[Task] = (id.?, title) <> (Task.tupled, Task.unapply)
 }
 
-val tasks = TableQuery[Tasks]
+//val tasks = TableQuery[Tasks]
