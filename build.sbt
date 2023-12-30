@@ -29,6 +29,7 @@ resolvers += "Akka library repository".at("https://repo.akka.io/maven")
 // You can define other libraries as dependencies in your build like this:
 
 libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "2.3.0"
+libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.4.7"
 
 val AkkaVersion = "2.9.0"
 val AkkaHttpVersion = "10.6.0"

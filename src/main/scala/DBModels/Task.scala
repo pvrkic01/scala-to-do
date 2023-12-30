@@ -3,14 +3,18 @@ package DBModels
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.ProvenShape
 
-case class Task(id: Option[Int] = None, title: String)
+case class TaskDB(id: Option[Int] = None, title: String, description: String)
 
-class Tasks(tag: Tag) extends Table[Task](tag, "tasks") {
+class Tasks(tag: Tag) extends Table[TaskDB](tag, "tasks") {
   def id: Rep[Int] = column[Int]("id", O.PrimaryKey, O.AutoInc)
-  def title: Rep[String] = column[String]("title")
-  def description: Rep[String] = column[String]("description")
+  private def title: Rep[String] = column[String]("title")
+  private def description: Rep[String] = column[String]("description")
 
-  def * : ProvenShape[Task] = (id.?, title) <> (Task.tupled, Task.unapply)
+  def * : ProvenShape[TaskDB] = (id.?, title,description) <> (TaskDB.tupled, TaskDB.unapply)
 }
 
-//val tasks = TableQuery[Tasks]
+object Tasks {
+  val tasks = TableQuery[Tasks]
+}
+
+

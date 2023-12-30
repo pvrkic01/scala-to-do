@@ -1,5 +1,6 @@
 package routes
-import actors.{Task, TaskActor}
+import actors.TaskActor
+import DBModels.TaskDB
 import akka.actor.{ActorRef, ActorSystem}
 import akka.event.{Logging, LoggingAdapter}
 
@@ -27,29 +28,29 @@ class Routes(taskActor: ActorRef)(implicit system: ActorSystem, executionContext
   implicit val log: LoggingAdapter = Logging(system, getClass)
   implicit val timeout: Timeout = Timeout(5.seconds)
 
-  private val allTasksEndpoint: Endpoint[Unit, Unit, String, List[Task], Any] = endpoint.get
+  private val allTasksEndpoint: Endpoint[Unit, Unit, String, List[TaskDB], Any] = endpoint.get
     .in("tasks")
     .errorOut(stringBody)
-    .out(jsonBody[List[Task]])
+    .out(jsonBody[List[TaskDB]])
 
   private val singleTaskEndpoint
-  : Endpoint[Unit, Int,  (StatusCode, ErrorResponse), (StatusCode,Option[Task]), Any] = endpoint.get
+  : Endpoint[Unit, Int,  (StatusCode, ErrorResponse), (StatusCode,Option[TaskDB]), Any] = endpoint.get
     .in("tasks")
     .in(path[Int]("id"))
     .errorOut(statusCode.and(jsonBody[ErrorResponse]))
-    .out(statusCode.and(jsonBody[Option[Task]]))
+    .out(statusCode.and(jsonBody[Option[TaskDB]]))
 
   private val storeTaskEndpoint: Endpoint[
     Unit,
-    Task,
+    TaskDB,
     (StatusCode, ErrorResponse),
-    (StatusCode, Task),
+    (StatusCode, Int),
     Any
   ] = endpoint.post
     .in("tasks")
-    .in(jsonBody[Task])
+    .in(jsonBody[TaskDB])
     .errorOut(statusCode.and(jsonBody[ErrorResponse]))
-    .out(statusCode.and(jsonBody[Task]))
+    .out(statusCode.and(jsonBody[Int]))
 
   private val taskDeleteEndpoint: Endpoint[
     Unit,
@@ -66,17 +67,17 @@ class Routes(taskActor: ActorRef)(implicit system: ActorSystem, executionContext
   private val getAllTasks: Route = AkkaHttpServerInterpreter().toRoute(
     allTasksEndpoint
       .serverLogic(_ => {
-        val tasksFuture: Future[List[actors.Task]] = (taskActor ? TaskActor.GetTasks).mapTo[List[Task]]
+        val tasksFuture: Future[List[TaskDB]] = (taskActor ? TaskActor.GetTasks).mapTo[List[TaskDB]]
         tasksFuture.map(Right(_)).recover { case ex => Left(ex.getMessage) }
       })
   )
   private val getSingleTask: Route = AkkaHttpServerInterpreter().toRoute(
     singleTaskEndpoint
       .serverLogic(taskId => {
-        val taskFuture: Future[Option[Task]] = (taskActor ? TaskActor.GetTaskById(taskId)).mapTo[Option[Task]]
+        val taskFuture: Future[Option[TaskDB]] = (taskActor ? TaskActor.GetTaskByIdDB(taskId)).mapTo[Option[TaskDB]]
 
         taskFuture.map {
-          case Some(task) => Right(StatusCode.Found, Some(task))
+          case Some(task) => Right(StatusCode.Accepted, Some(task))
           case None => Right(StatusCode.NotFound,None)
         }.recover {
           case ex => Left((StatusCode.InternalServerError, ErrorResponse(ex.getMessage)))
@@ -87,7 +88,7 @@ class Routes(taskActor: ActorRef)(implicit system: ActorSystem, executionContext
   private val deleteSingleTask: Route = AkkaHttpServerInterpreter().toRoute(
     taskDeleteEndpoint
       .serverLogic(taskId => {
-        val taskFuture: Future[String] = (taskActor ? TaskActor.DeleteTaskById(taskId)).mapTo[String]
+        val taskFuture: Future[String] = (taskActor ? TaskActor.DeleteTaskByIdDB(taskId)).mapTo[String]
 
 
         taskFuture.map(Right(StatusCode.Accepted,_)).recover {
@@ -100,21 +101,9 @@ class Routes(taskActor: ActorRef)(implicit system: ActorSystem, executionContext
     storeTaskEndpoint
       .serverLogic(task => {
 
-        if (task.id <= 0) {
-          Future.successful(
-            Left(
-              StatusCode.BadRequest -> ErrorResponse(
-                "negative ids are not accepted"
-              )
-            )
-          )
-        } else {
-
-          val taskFuture: Future[Task] = (taskActor ? TaskActor.AddTask(task)).mapTo[Task]
-          taskFuture.map(Right(StatusCode.Accepted,_)).recover {
-            case ex => Left((StatusCode.InternalServerError, ErrorResponse(ex.getMessage)))
-          }
-
+        val taskFuture: Future[Int] = (taskActor ? TaskActor.AddTaskDB(task)).mapTo[Int]
+        taskFuture.map(Right(StatusCode.Accepted,_)).recover {
+          case ex => Left((StatusCode.InternalServerError, ErrorResponse(ex.getMessage)))
         }
       })
   )

@@ -7,13 +7,15 @@ import akka.actor.{ActorSystem, Props, ActorRef}
 
 import scala.concurrent.ExecutionContextExecutor
 import scala.io.StdIn
+import slick.jdbc.MySQLProfile.api._
 
 object Main extends App {
   implicit val system: ActorSystem = ActorSystem("todoListSystem")
   implicit val materializer: Materializer = Materializer.createMaterializer(system)
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
 
-  val taskActor: ActorRef = system.actorOf(Props[TaskActor], "taskActor")
+  val db: Database = Database.forConfig("mysql")
+  val taskActor: ActorRef = system.actorOf(Props(new TaskActor(db)), "taskActor")
   private val taskRoutes = new Routes(taskActor)
 
   private val bindingFuture = Http().newServerAt("localhost", 8080).bindFlow(taskRoutes.routes)
