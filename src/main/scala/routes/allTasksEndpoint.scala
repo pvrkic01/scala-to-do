@@ -1,5 +1,0 @@
-package routes
-
-object allTasksEndpoint {
-
-}
