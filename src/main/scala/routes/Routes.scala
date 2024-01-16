@@ -18,12 +18,15 @@ import sttp.tapir.json.circe._
 import sttp.tapir.server.akkahttp.AkkaHttpServerInterpreter
 import sttp.tapir.swagger.bundle.SwaggerInterpreter
 
+import slick.jdbc.MySQLProfile.api._
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration.DurationInt
 
+
+import DBModels.Tasks.{ tasks => tasksDB }
 case class ErrorResponse(message: String)
 
-class Routes(taskActor: ActorRef)(implicit system: ActorSystem, executionContext: ExecutionContextExecutor) {
+class Routes(implicit system: ActorSystem, executionContext: ExecutionContextExecutor, dbConnection: Database) {
 
   implicit val log: LoggingAdapter = Logging(system, getClass)
   implicit val timeout: Timeout = Timeout(5.seconds)
@@ -56,27 +59,30 @@ class Routes(taskActor: ActorRef)(implicit system: ActorSystem, executionContext
     Unit,
     Int,
     (StatusCode, ErrorResponse),
-    (StatusCode, String),
+    (StatusCode, Int),
     Any
   ] = endpoint.delete
     .in("tasks")
     .in(path[Int]("id"))
     .errorOut(statusCode.and(jsonBody[ErrorResponse]))
-    .out(statusCode.and(jsonBody[String]))
+    .out(statusCode.and(jsonBody[Int]))
 
   private val getAllTasks: Route = AkkaHttpServerInterpreter().toRoute(
     allTasksEndpoint
       .serverLogic(_ => {
-        val tasksFuture: Future[List[TaskDB]] = (taskActor ? TaskActor.GetTasks).mapTo[List[TaskDB]]
-        tasksFuture.map(Right(_)).recover { case ex => Left(ex.getMessage) }
+
+        val maybeAllTasks = dbConnection.run(tasksDB.result).map(_.toList)
+        maybeAllTasks.map(Right(_)).recover { case ex => Left(ex.getMessage) }
       })
   )
   private val getSingleTask: Route = AkkaHttpServerInterpreter().toRoute(
     singleTaskEndpoint
       .serverLogic(taskId => {
-        val taskFuture: Future[Option[TaskDB]] = (taskActor ? TaskActor.GetTaskByIdDB(taskId)).mapTo[Option[TaskDB]]
 
-        taskFuture.map {
+        val query = tasksDB.filter(_.id === taskId).result.headOption
+        val maybeTask = dbConnection.run(query)
+
+        maybeTask.map {
           case Some(task) => Right(StatusCode.Accepted, Some(task))
           case None => Right(StatusCode.NotFound,None)
         }.recover {
@@ -88,10 +94,10 @@ class Routes(taskActor: ActorRef)(implicit system: ActorSystem, executionContext
   private val deleteSingleTask: Route = AkkaHttpServerInterpreter().toRoute(
     taskDeleteEndpoint
       .serverLogic(taskId => {
-        val taskFuture: Future[String] = (taskActor ? TaskActor.DeleteTaskByIdDB(taskId)).mapTo[String]
 
-
-        taskFuture.map(Right(StatusCode.Accepted,_)).recover {
+        val query = tasksDB.filter(_.id === taskId).delete
+        val maybeDeleteTask = dbConnection.run(query)
+        maybeDeleteTask.map(Right(StatusCode.Accepted,_)).recover {
           case ex => Left((StatusCode.InternalServerError, ErrorResponse(ex.getMessage)))
         }
       })
@@ -101,8 +107,8 @@ class Routes(taskActor: ActorRef)(implicit system: ActorSystem, executionContext
     storeTaskEndpoint
       .serverLogic(task => {
 
-        val taskFuture: Future[Int] = (taskActor ? TaskActor.AddTaskDB(task)).mapTo[Int]
-        taskFuture.map(Right(StatusCode.Accepted,_)).recover {
+        val maybeNewTask = dbConnection.run(tasksDB returning tasksDB.map(_.id) += task)
+        maybeNewTask.map(Right(StatusCode.Accepted,_)).recover {
           case ex => Left((StatusCode.InternalServerError, ErrorResponse(ex.getMessage)))
         }
       })
