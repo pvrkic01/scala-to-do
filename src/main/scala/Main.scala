@@ -1,4 +1,3 @@
-import actors.TaskActor
 import akka.http.scaladsl.Http
 import akka.stream.Materializer
 import routes.Routes
@@ -17,7 +16,7 @@ object Main extends App {
 
   private val taskRoutes = new Routes()
 
-  private val bindingFuture = Http().newServerAt("localhost", 8080).bindFlow(taskRoutes.routes)
+  private val bindingFuture = Http().newServerAt("localhost", 8089).bindFlow(taskRoutes.routes)
 
   println("Server online at http://localhost:8080/\nPress RETURN to stop...")
   StdIn.readLine()
