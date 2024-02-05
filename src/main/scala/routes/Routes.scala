@@ -1,5 +1,5 @@
 package routes
-import domains.task.{In => TaskIn, Out => TaskOutput}
+import domains.task.{OutWithAuthor, In => TaskIn, Out => TaskOutput}
 import akka.actor.ActorSystem
 import akka.event.{Logging, LoggingAdapter}
 import akka.http.scaladsl.server
@@ -33,11 +33,11 @@ class Routes(implicit system: ActorSystem, executionContext: ExecutionContextExe
     .out(jsonBody[List[TaskOutput]])
 
   private val singleTaskEndpoint
-  : Endpoint[Unit, Int,  (StatusCode, ErrorResponse ), (StatusCode,Option[TaskOutput]), Any] = endpoint.get
+  : Endpoint[Unit, Int,  (StatusCode, ErrorResponse ), (StatusCode,Option[OutWithAuthor]), Any] = endpoint.get
     .in("tasks")
     .in(path[Int]("id"))
     .errorOut(statusCode.and(jsonBody[ErrorResponse]))
-    .out(statusCode.and(jsonBody[Option[TaskOutput]]))
+    .out(statusCode.and(jsonBody[Option[OutWithAuthor]]))
 
   private val storeTaskEndpoint: Endpoint[
     Unit,

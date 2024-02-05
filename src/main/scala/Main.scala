@@ -18,7 +18,7 @@ object Main extends App {
 
   private val bindingFuture = Http().newServerAt("localhost", 8089).bindFlow(taskRoutes.routes)
 
-  println("Server online at http://localhost:8080/\nPress RETURN to stop...")
+  println("Server online at http://localhost:8089/\nPress RETURN to stop...")
   StdIn.readLine()
 
   bindingFuture

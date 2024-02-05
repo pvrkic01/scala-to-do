@@ -1,7 +1,8 @@
 package services
 
-import domains.task.{Database => TaskImplementation}
-import domains.task.{In => TaskIn, Out => TaskOutput}
+import domains.author.{Database => AuthorImplementation}
+import domains.task.TaskWithAuthor.WithAuthor
+import domains.task.{OutWithAuthor, Database => TaskImplementation, In => TaskIn, Out => TaskOutput}
 import repositories.TaskRepository
 import routes.ErrorResponse
 
@@ -24,10 +25,18 @@ class TaskService (implicit dbConnection: Database, executionContext: ExecutionC
     })
 
 
-    TaskImplementation(None,task.title, task.description, formattedTimestamp)
+    TaskImplementation(None,task.author,task.title, task.description, formattedTimestamp)
   }
 
-  def formatOutTask(task: TaskImplementation): TaskOutput = {
+  def formatOutTaskWithAuthor(task: TaskImplementation, author: AuthorImplementation): OutWithAuthor = {
+    val formatter = DateTimeFormatter.ofPattern("HH:mm dd.MM.yyyy")
+    val formattedTimestamp = task.deadline.map(formatter.format)
+
+
+    (TaskOutput(task.id.get, task.title, task.description, formattedTimestamp)).withAuthor(author)
+  }
+
+  def formatOutTask(task: TaskImplementation):TaskOutput  = {
     val formatter = DateTimeFormatter.ofPattern("HH:mm dd.MM.yyyy")
     val formattedTimestamp = task.deadline.map(formatter.format)
 
@@ -50,11 +59,11 @@ class TaskService (implicit dbConnection: Database, executionContext: ExecutionC
       case ex => Left(StatusCode.InternalServerError, ErrorResponse(ex.getMessage))
     }
   }
-  def findTaskById(id:Int): Future[Either[(StatusCode, ErrorResponse), (StatusCode, Option[TaskOutput])]] = {
-    val maybeTask = taskRepo.findById(id)
+  def findTaskById(id:Int): Future[Either[(StatusCode, ErrorResponse), (StatusCode, Option[OutWithAuthor])]] = {
+    val maybeTask = taskRepo.findByIdWithAuthor(id)
 
     maybeTask.map {
-      case Some(task) => Right(StatusCode.Accepted, Some(formatOutTask(task)))
+      case Some((task,author)) => Right(StatusCode.Accepted, Some(formatOutTaskWithAuthor(task, author)))
       case None => Right(StatusCode.NotFound,None)
     }.recover {
       case ex => Left(StatusCode.InternalServerError, ErrorResponse(ex.getMessage))
