@@ -1,8 +1,7 @@
 package repositories
 
-import DBModels.Authors
-import DBModels.Authors.{authorsTable}
-import domains.author.{Database => AuthorImplementation}
+import models.dao.{Authors_, Author => AuthorImplementation}
+import models.dao.Authors_.authorsTable
 import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.{ExecutionContextExecutor, Future}

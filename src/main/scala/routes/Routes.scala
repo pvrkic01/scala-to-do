@@ -1,5 +1,4 @@
 package routes
-import domains.task.{OutWithAuthor, In => TaskIn, Out => TaskOutput}
 import akka.actor.ActorSystem
 import akka.event.{Logging, LoggingAdapter}
 import akka.http.scaladsl.server
@@ -7,6 +6,8 @@ import akka.http.scaladsl.server.Directives.concat
 import akka.http.scaladsl.server.Route
 import akka.util.Timeout
 import io.circe.generic.auto._
+import models.api.in.Task
+import models.api.out.{TaskWithAuthor, Task => TaskOutput}
 import services.TaskService
 import slick.jdbc.MySQLProfile.api._
 import sttp.model.StatusCode
@@ -33,21 +34,21 @@ class Routes(implicit system: ActorSystem, executionContext: ExecutionContextExe
     .out(jsonBody[List[TaskOutput]])
 
   private val singleTaskEndpoint
-  : Endpoint[Unit, Int,  (StatusCode, ErrorResponse ), (StatusCode,Option[OutWithAuthor]), Any] = endpoint.get
+  : Endpoint[Unit, Int,  (StatusCode, ErrorResponse ), (StatusCode,Option[TaskWithAuthor]), Any] = endpoint.get
     .in("tasks")
     .in(path[Int]("id"))
     .errorOut(statusCode.and(jsonBody[ErrorResponse]))
-    .out(statusCode.and(jsonBody[Option[OutWithAuthor]]))
+    .out(statusCode.and(jsonBody[Option[TaskWithAuthor]]))
 
   private val storeTaskEndpoint: Endpoint[
     Unit,
-    TaskIn,
+    Task,
     (StatusCode, ErrorResponse),
     (StatusCode, Int),
     Any
   ] = endpoint.post
     .in("tasks")
-    .in(jsonBody[TaskIn])
+    .in(jsonBody[Task])
     .errorOut(statusCode.and(jsonBody[ErrorResponse]))
     .out(statusCode.and(jsonBody[Int]))
 

@@ -1,10 +1,8 @@
 package repositories
 
-import DBModels.Authors.authorsTable
-import DBModels.Tasks
-import DBModels.Tasks.{tasks => tasksDB}
-import domains.task.{Database => TaskImplementation}
-import domains.author.{Database => AuthorImplementation}
+import models.dao.Authors_.authorsTable
+import models.dao.{Tasks, Author => AuthorImplementation, Task => TaskImplementation}
+import models.dao.Tasks_.{tasks => tasksDB}
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.Query
 
